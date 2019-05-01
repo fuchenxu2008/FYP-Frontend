@@ -22,12 +22,11 @@ export default class Map extends Component {
 
     const map = this.reactMap.getMap();
     map.on('load', () => {
-      map.addControl(new NavigationControl());
       this.setState({ map }, this._addGeoJSON);
-      var layers = map.getStyle().layers;
+      const layers = map.getStyle().layers;
 
-      var labelLayerId;
-      for (var i = 0; i < layers.length; i++) {
+      let labelLayerId;
+      for (let i = 0; i < layers.length; i++) {
         if (
           layers[i].type === 'symbol' &&
           layers[i].layout['text-field']
@@ -44,23 +43,22 @@ export default class Map extends Component {
         'type': 'fill-extrusion',
         'minzoom': 15,
         'paint': {
-        'fill-extrusion-color': '#aaa',
-        
-        // use an 'interpolate' expression to add a smooth transition effect to the
-        // buildings as the user zooms in
-        'fill-extrusion-height': [
-        "interpolate", ["linear"], ["zoom"],
-        15, 0,
-        15.05, ["get", "height"]
-        ],
-        'fill-extrusion-base': [
-        "interpolate", ["linear"], ["zoom"],
-        15, 0,
-        15.05, ["get", "min_height"]
-        ],
-        'fill-extrusion-opacity': .6
+          'fill-extrusion-color': '#aaa',
+          // use an 'interpolate' expression to add a smooth transition effect to the
+          // buildings as the user zooms in
+          'fill-extrusion-height': [
+            "interpolate", ["linear"], ["zoom"],
+            15, 0,
+            15.05, ["get", "height"]
+          ],
+          'fill-extrusion-base': [
+            "interpolate", ["linear"], ["zoom"],
+            15, 0,
+            15.05, ["get", "min_height"]
+          ],
+          'fill-extrusion-opacity': .6
         }
-        }, labelLayerId);
+      }, labelLayerId);
     })
   }
 
@@ -119,7 +117,7 @@ export default class Map extends Component {
 
   render() {
     const { width, height } = this.state;
-    const { routes, source, dest } = this.props;
+    const { route, source, dest } = this.props;
     const routeEndPoint = (type, point) => (
       <Marker
         longitude={point[0]}
@@ -132,27 +130,25 @@ export default class Map extends Component {
     );
 
     return (
-      <div>
-        <ReactMapGL
-          ref={reactMap => (this.reactMap = reactMap)}
-          {...this.state.viewport}
-          width={width}
-          height={height}
-          mapStyle="mapbox://styles/mapbox/streets-v9"
-          mapboxApiAccessToken={MapBoxToken}
-          onViewportChange={viewport => this.setState({ viewport })}
-          onClick={this._handleDropPin}
-        >
-          {routes.length && (
-            <PolylineOverlay points={routes} color="#4569F7" />
-          )}
-          {source && routeEndPoint('source', source)}
-          {dest && routeEndPoint('dest', dest)}
-          <div style={styles.navControl}>
-            <NavigationControl onViewportChange={viewport => this.setState({ viewport })} />
-          </div>
-        </ReactMapGL>
-      </div>
+      <ReactMapGL
+        ref={reactMap => (this.reactMap = reactMap)}
+        {...this.state.viewport}
+        width={width}
+        height={height}
+        mapStyle="mapbox://styles/mapbox/streets-v9"
+        mapboxApiAccessToken={MapBoxToken}
+        onViewportChange={viewport => this.setState({ viewport })}
+        onClick={this._handleDropPin}
+      >
+        {route.length && (
+          <PolylineOverlay points={route} color="#4569F7" />
+        )}
+        {source && routeEndPoint('source', source)}
+        {dest && routeEndPoint('dest', dest)}
+        <div style={styles.navControl}>
+          <NavigationControl onViewportChange={viewport => this.setState({ viewport })} />
+        </div>
+      </ReactMapGL>
     );
   }
 }
@@ -160,6 +156,7 @@ export default class Map extends Component {
 const styles = {
   marker: {
     fontSize: '35px',
+    transform: 'translate(-50%, -50%)',
   },
   navControl: {
     position: 'absolute',

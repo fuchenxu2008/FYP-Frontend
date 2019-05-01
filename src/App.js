@@ -7,7 +7,7 @@ import './App.css';
 export default class App extends Component {
   state = {
     socket: null,
-    routes: [],
+    route: [], // [[lon, lat]]
     source: null,
     dest: null,
   }
@@ -33,8 +33,8 @@ export default class App extends Component {
     if (!socket) return;
     socket.emit('runAStar', { source, dest });
     socket.on('AStarResult', result => {
-      console.log('result: ', result.length);
-      this.setState({ routes: result });
+      console.log('result: ', result);
+      this.setState({ route: result });
       socket.off('AStarResult');
     });
     socket.on('AStar_benchmark', benchmark => {
@@ -49,7 +49,7 @@ export default class App extends Component {
     socket.emit('runDijkstra', { source, dest });
     socket.on('DijkstraResult', result => {
       console.log('result: ', result.length);
-      this.setState({ routes: result });
+      this.setState({ route: result });
       socket.off('DijkstraResult');
     });
     socket.on('Dijkstra_benchmark', benchmark => {
@@ -64,7 +64,7 @@ export default class App extends Component {
     socket.emit('runBestFS', { source, dest });
     socket.on('BestFSResult', result => {
       console.log('result: ', result.length);
-      this.setState({ routes: result });
+      this.setState({ route: result });
       socket.off('BestFSResult');
     });
     socket.on('BestFS_benchmark', benchmark => {
@@ -74,7 +74,7 @@ export default class App extends Component {
   }
 
   render() {
-    const { source, dest, routes } = this.state;
+    const { source, dest, route } = this.state;
 
     return (
       <div className="App">
@@ -89,7 +89,7 @@ export default class App extends Component {
           </div>
         </div>
         <Map
-          routes={routes}
+          route={route}
           source={source}
           dest={dest}
           onAddPin={this._setSourceDest}
@@ -117,6 +117,7 @@ const styles = {
     fontSize: '15px',
     marginRight: '10px',
     color: 'rgb(50, 50, 50)',
+    backgroundColor: 'white',
     cursor: 'pointer',
     outline: 0,
   }
