@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
-import ReactMapGL, { Marker, NavigationControl } from 'react-map-gl';
+import ReactMapGL, {
+  Marker,
+  NavigationControl,
+  FlyToInterpolator
+} from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import PolylineOverlay from './PolylineOverlay.jsx';
 import { MapBoxToken } from '../config';
+import emitter from '../utils/Event';
 
 export default class Map extends Component {
   state = {
@@ -19,51 +23,21 @@ export default class Map extends Component {
   componentDidMount() {
     this.updateWindowDimensions();
     window.addEventListener('resize', this.updateWindowDimensions);
+    emitter.addListener('focusMap', this._focusMap);
 
     const map = this.reactMap.getMap();
     map.on('load', () => {
-      this.setState({ map }, this._addGeoJSON);
-      const layers = map.getStyle().layers;
-
-      let labelLayerId;
-      for (let i = 0; i < layers.length; i++) {
-        if (
-          layers[i].type === 'symbol' &&
-          layers[i].layout['text-field']
-        ) {
-          labelLayerId = layers[i].id;
-          break;
-        }
-      }
-      map.addLayer({
-        'id': '3d-buildings',
-        'source': 'composite',
-        'source-layer': 'building',
-        'filter': ['==', 'extrude', 'true'],
-        'type': 'fill-extrusion',
-        'minzoom': 15,
-        'paint': {
-          'fill-extrusion-color': '#aaa',
-          // use an 'interpolate' expression to add a smooth transition effect to the
-          // buildings as the user zooms in
-          'fill-extrusion-height': [
-            "interpolate", ["linear"], ["zoom"],
-            15, 0,
-            15.05, ["get", "height"]
-          ],
-          'fill-extrusion-base': [
-            "interpolate", ["linear"], ["zoom"],
-            15, 0,
-            15.05, ["get", "min_height"]
-          ],
-          'fill-extrusion-opacity': .6
-        }
-      }, labelLayerId);
+      this.setState({ map }, () => {
+        this._render3DModels();
+        const { obstacles } = this.props;
+        if (obstacles) this._renderObstacles(obstacles);
+      });
     })
   }
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.updateWindowDimensions);
+    emitter.removeAllListeners();
   }
 
   updateWindowDimensions = () => {
@@ -71,45 +45,138 @@ export default class Map extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
+    if (!this.state.map) return;
+    if (nextProps.obstacles && nextProps.obstacles !== this.props.obstacles)
+      this._renderObstacles(nextProps.obstacles);
+    if (nextProps.route && nextProps.route !== this.props.route)
+      this._renderRoute(nextProps.route);
     if (nextProps.traversed && nextProps.traversed !== this.props.traversed)
       this._renderTraversedPoints(nextProps.traversed);
   }
 
-  _addGeoJSON = () => {
-    const polygon = {"type":"FeatureCollection","name":"sfo_poly","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::3857"}},"features":[{"type":"Feature","properties":{"POLY_ID":1},"geometry":{"type":"Polygon","coordinates":[[[-122.39360652430645,37.668098718417596],[-122.39470050748879,37.66708364860348],[-122.39653347268842,37.66769728003766],[-122.39585969496682,37.66921126486574],[-122.39360652430645,37.668098718417596]]]}}]};
-    //add the GeoJSON layer here
-    this.state.map.addLayer({
-      id: polygon.name,
-      type: 'fill',
-      source: {
-        type: 'geojson',
-        data: polygon
-      },
-      layout: {},
-      paint: {
-        'fill-color': '#088',
-        'fill-opacity': 0.8
+  _render3DModels = () => {
+    const { map } = this.state;
+    const layers = map.getStyle().layers;
+    let labelLayerId;
+    for (let i = 0; i < layers.length; i++) {
+      if (
+        layers[i].type === 'symbol' &&
+        layers[i].layout['text-field']
+      ) {
+        labelLayerId = layers[i].id;
+        break;
       }
-    });
+    }
+    map.addLayer({
+      'id': '3d-buildings',
+      'source': 'composite',
+      'source-layer': 'building',
+      'filter': ['==', 'extrude', 'true'],
+      'type': 'fill-extrusion',
+      'minzoom': 15,
+      'paint': {
+        'fill-extrusion-color': '#aaa',
+        // use an 'interpolate' expression to add a smooth transition effect to the
+        // buildings as the user zooms in
+        'fill-extrusion-height': [
+          "interpolate", ["linear"], ["zoom"],
+          15, 0,
+          15.05, ["get", "height"]
+        ],
+        'fill-extrusion-base': [
+          "interpolate", ["linear"], ["zoom"],
+          15, 0,
+          15.05, ["get", "min_height"]
+        ],
+        'fill-extrusion-opacity': .6
+      }
+    }, labelLayerId);
   }
 
-  _renderTraversedPoints = (geojson) => {
-    this.state.map.addLayer({
-      id: geojson.name + Date.now(),
-      type: 'symbol',
-      source: {
-        type: 'geojson',
-        data: geojson
-      },
-      layout: {
-        'icon-image': 'circle-15',
-        'icon-size': 0.5
-      },
-    });
+  _renderObstacles = (obstacles) => {
+    const { map } = this.state;
+    const layer = map.getLayer('obstacles');
+    if (layer) {
+      map.getSource('obstacles').setData(obstacles);
+    } else {
+      //add the GeoJSON layer here
+      map.addLayer({
+        id: 'obstacles',
+        type: 'fill',
+        source: {
+          type: 'geojson',
+          data: obstacles
+        },
+        paint: {
+          'fill-color': '#088',
+          'fill-opacity': 0.8
+        }
+      });
+    }
   }
 
-  _goToNYC = () => {
-    const viewport = { ...this.state.viewport, longitude: -74.1, latitude: 40.7 };
+  _renderRoute = (route) => {
+    const { map } = this.state;
+    const layer = map.getLayer('route');
+    if (layer) {
+      map.getSource('route').setData(route);
+    } else {
+      //add the GeoJSON layer here
+      map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: {
+          type: 'geojson',
+          data: route
+        },
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round'
+        },
+        paint: {
+          'line-color': '#486EF3',
+          'line-width': 5
+        }
+      });
+    }
+  }
+
+  _renderTraversedPoints = (traversed) => {
+    const { map } = this.state;
+    const layer = map.getLayer('traversed');
+    if (layer) {
+      map.getSource('traversed').setData(traversed);
+    } else {
+      map.addLayer({
+        id: 'traversed',
+        type: 'circle',
+        source: {
+          type: 'geojson',
+          data: traversed
+        },
+        paint: {
+          // make circles larger as the user zooms from z12 to z22
+          'circle-radius': {
+            base: 1.75,
+            stops: [[12, 2], [22, 180]]
+          },
+          'circle-color': '#E35F61',
+          'circle-opacity': 0.3
+        }
+      });
+      map.moveLayer('traversed', 'obstacles');
+    }
+  }
+
+  _focusMap = () => {
+    const viewport = {
+      ...this.state.viewport,
+      longitude: -122.45,
+      latitude: 37.73,
+      zoom: 10,
+      transitionDuration: 1000,
+      transitionInterpolator: new FlyToInterpolator()
+    };
     this.setState({ viewport });
   }
 
@@ -137,7 +204,7 @@ export default class Map extends Component {
 
   render() {
     const { width, height } = this.state;
-    const { route, source, dest } = this.props;
+    const { source, dest } = this.props;
     const routeEndPoint = (type, point) => (
       <Marker
         longitude={point[0]}
@@ -160,7 +227,6 @@ export default class Map extends Component {
         onViewportChange={viewport => this.setState({ viewport })}
         onClick={this._handleDropPin}
       >
-        {route.length && <PolylineOverlay points={route} color="#4569F7" />}
         {source && routeEndPoint('source', source)}
         {dest && routeEndPoint('dest', dest)}
         <div style={styles.navControl}>
