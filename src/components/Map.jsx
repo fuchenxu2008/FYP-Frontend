@@ -70,21 +70,41 @@ export default class Map extends Component {
     this.setState({ width: window.innerWidth, height: window.innerHeight });
   }
 
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.traversed && nextProps.traversed !== this.props.traversed)
+      this._renderTraversedPoints(nextProps.traversed);
+  }
+
   _addGeoJSON = () => {
     const polygon = {"type":"FeatureCollection","name":"sfo_poly","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::3857"}},"features":[{"type":"Feature","properties":{"POLY_ID":1},"geometry":{"type":"Polygon","coordinates":[[[-122.39360652430645,37.668098718417596],[-122.39470050748879,37.66708364860348],[-122.39653347268842,37.66769728003766],[-122.39585969496682,37.66921126486574],[-122.39360652430645,37.668098718417596]]]}}]};
     //add the GeoJSON layer here
     this.state.map.addLayer({
-      id: 'maine',
+      id: polygon.name,
       type: 'fill',
       source: {
         type: 'geojson',
-        data: polygon,
+        data: polygon
       },
       layout: {},
       paint: {
         'fill-color': '#088',
         'fill-opacity': 0.8
       }
+    });
+  }
+
+  _renderTraversedPoints = (geojson) => {
+    this.state.map.addLayer({
+      id: geojson.name + Date.now(),
+      type: 'symbol',
+      source: {
+        type: 'geojson',
+        data: geojson
+      },
+      layout: {
+        'icon-image': 'circle-15',
+        'icon-size': 0.5
+      },
     });
   }
 
@@ -140,13 +160,13 @@ export default class Map extends Component {
         onViewportChange={viewport => this.setState({ viewport })}
         onClick={this._handleDropPin}
       >
-        {route.length && (
-          <PolylineOverlay points={route} color="#4569F7" />
-        )}
+        {route.length && <PolylineOverlay points={route} color="#4569F7" />}
         {source && routeEndPoint('source', source)}
         {dest && routeEndPoint('dest', dest)}
         <div style={styles.navControl}>
-          <NavigationControl onViewportChange={viewport => this.setState({ viewport })} />
+          <NavigationControl
+            onViewportChange={viewport => this.setState({ viewport })}
+          />
         </div>
       </ReactMapGL>
     );
@@ -156,11 +176,18 @@ export default class Map extends Component {
 const styles = {
   marker: {
     fontSize: '35px',
-    transform: 'translate(-50%, -50%)',
+    transform: 'translate(-50%, -50%)'
+  },
+  traversedNode: {
+    width: '5px',
+    height: '5px',
+    backgroundColor: 'red',
+    borderRadius: '50%',
+    transform: 'translate(-50%, -50%)'
   },
   navControl: {
     position: 'absolute',
     right: '10px',
     bottom: '50px'
   }
-}
+};

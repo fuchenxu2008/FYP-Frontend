@@ -7,9 +7,10 @@ import './App.css';
 export default class App extends Component {
   state = {
     socket: null,
-    route: [], // [[lon, lat]]
     source: null,
     dest: null,
+    route: [], // [[lon, lat]]
+    traversed: null, // geojson
   }
 
   componentDidMount() {
@@ -32,10 +33,15 @@ export default class App extends Component {
     const { socket, source, dest } = this.state;
     if (!socket) return;
     socket.emit('runAStar', { source, dest });
-    socket.on('AStarResult', result => {
-      console.log('result: ', result);
-      this.setState({ route: result });
-      socket.off('AStarResult');
+    socket.on('AStarRoute', route => {
+      console.log('route: ', route);
+      this.setState({ route });
+      socket.off('AStarRoute');
+    });
+    socket.on('AStarTraversed', traversed => {
+      console.log('traversed: ', traversed);
+      this.setState({ traversed });
+      socket.off('AStarRoute');
     });
     socket.on('AStar_benchmark', benchmark => {
       console.log('benchmark: ', benchmark);
@@ -47,10 +53,15 @@ export default class App extends Component {
     const { socket, source, dest } = this.state;
     if (!socket) return;
     socket.emit('runDijkstra', { source, dest });
-    socket.on('DijkstraResult', result => {
-      console.log('result: ', result.length);
-      this.setState({ route: result });
-      socket.off('DijkstraResult');
+    socket.on('DijkstraRoute', route => {
+      console.log('route: ', route);
+      this.setState({ route });
+      socket.off('DijkstraRoute');
+    });
+    socket.on('DijkstraTraversed', traversed => {
+      console.log('traversed: ', traversed);
+      this.setState({ traversed });
+      socket.off('DijkstraRoute');
     });
     socket.on('Dijkstra_benchmark', benchmark => {
       console.log('benchmark: ', benchmark);
@@ -62,10 +73,15 @@ export default class App extends Component {
     const { socket, source, dest } = this.state;
     if (!socket) return;
     socket.emit('runBestFS', { source, dest });
-    socket.on('BestFSResult', result => {
-      console.log('result: ', result.length);
-      this.setState({ route: result });
-      socket.off('BestFSResult');
+    socket.on('BestFSRoute', route => {
+      console.log('route: ', route);
+      this.setState({ route });
+      socket.off('BestFSRoute');
+    });
+    socket.on('BestFSTraversed', traversed => {
+      console.log('traversed: ', traversed);
+      this.setState({ traversed });
+      socket.off('BestFSRoute');
     });
     socket.on('BestFS_benchmark', benchmark => {
       console.log('benchmark: ', benchmark);
@@ -74,7 +90,7 @@ export default class App extends Component {
   }
 
   render() {
-    const { source, dest, route } = this.state;
+    const { source, dest, route, traversed } = this.state;
 
     return (
       <div className="App">
@@ -89,9 +105,10 @@ export default class App extends Component {
           </div>
         </div>
         <Map
-          route={route}
           source={source}
           dest={dest}
+          route={route}
+          traversed={traversed}
           onAddPin={this._setSourceDest}
         />
       </div>
