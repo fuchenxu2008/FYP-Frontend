@@ -7,7 +7,9 @@ import './App.css';
 export default class App extends Component {
   state = {
     socket: null,
-    nodes: [],
+    routes: [],
+    source: null,
+    dest: null,
   }
 
   componentDidMount() {
@@ -17,18 +19,22 @@ export default class App extends Component {
   _connectSocket = () => {
     const socket = io.connect(DOMAIN_URL);
     socket.on('connect', () => {
-      console.log('Connected to socket');
+      console.log('√ Connected to socket');
     })
     this.setState({ socket });
   }
 
+  _setSourceDest = ({ source, dest }) => {
+    this.setState({ source, dest });
+  }
+
   _runAStar = () => {
-    const { socket } = this.state;
+    const { socket, source, dest } = this.state;
     if (!socket) return;
-    socket.emit('runAStar');
+    socket.emit('runAStar', { source, dest });
     socket.on('AStarResult', result => {
-      console.log('result: ', result);
-      this.setState({ nodes: result });
+      console.log('result: ', result.length);
+      this.setState({ routes: result });
       socket.off('AStarResult');
     });
     socket.on('AStar_benchmark', benchmark => {
@@ -38,12 +44,12 @@ export default class App extends Component {
   }
 
   _runDijkstra = () => {
-    const { socket } = this.state;
+    const { socket, source, dest } = this.state;
     if (!socket) return;
-    socket.emit('runDijkstra');
+    socket.emit('runDijkstra', { source, dest });
     socket.on('DijkstraResult', result => {
-      console.log('result: ', result);
-      this.setState({ nodes: result });
+      console.log('result: ', result.length);
+      this.setState({ routes: result });
       socket.off('DijkstraResult');
     });
     socket.on('Dijkstra_benchmark', benchmark => {
@@ -53,12 +59,12 @@ export default class App extends Component {
   }
 
   _runBestFS = () => {
-    const { socket } = this.state;
+    const { socket, source, dest } = this.state;
     if (!socket) return;
-    socket.emit('runBestFS');
+    socket.emit('runBestFS', { source, dest });
     socket.on('BestFSResult', result => {
-      console.log('result: ', result);
-      this.setState({ nodes: result });
+      console.log('result: ', result.length);
+      this.setState({ routes: result });
       socket.off('BestFSResult');
     });
     socket.on('BestFS_benchmark', benchmark => {
@@ -68,6 +74,8 @@ export default class App extends Component {
   }
 
   render() {
+    const { source, dest, routes } = this.state;
+
     return (
       <div className="App">
         <div style={styles.header}>
@@ -75,12 +83,17 @@ export default class App extends Component {
             Finding the shortest path under polygonal obstacle constraints
           </h1>
           <div>
-            <button onClick={this._runAStar}>Run A Star</button>
-            <button onClick={this._runDijkstra}>Run Dijkstra</button>
-            <button onClick={this._runBestFS}>Run Best First Search</button>
+            <button onClick={this._runAStar} style={styles.button}>Run A Star</button>
+            <button onClick={this._runDijkstra} style={styles.button}>Run Dijkstra</button>
+            <button onClick={this._runBestFS} style={styles.button}>Run Best First Search</button>
           </div>
         </div>
-        <Map nodes={this.state.nodes} />
+        <Map
+          routes={routes}
+          source={source}
+          dest={dest}
+          onAddPin={this._setSourceDest}
+        />
       </div>
     );
   }
@@ -93,5 +106,18 @@ const styles = {
     left: 0,
     right: 0,
     zIndex: 10,
+    padding: '0 4%',
+    color: 'rgb(50, 50, 50)',
+    backgroundImage: 'linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%)',
+  },
+  button: {
+    border: 'none',
+    borderRadius: '15px',
+    padding: '5px 15px',
+    fontSize: '15px',
+    marginRight: '10px',
+    color: 'rgb(50, 50, 50)',
+    cursor: 'pointer',
+    outline: 0,
   }
-}
+};
