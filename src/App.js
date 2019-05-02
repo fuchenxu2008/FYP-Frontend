@@ -14,7 +14,7 @@ export default class App extends Component {
     dest: null,
     route: [], // [[lon, lat]]
     traversed: null, // geojson
-    benchmark: null,
+    benchmark: {},
     showBenchmarkCard: false,
   }
 
@@ -92,7 +92,12 @@ export default class App extends Component {
     socket.emit('runBenchmark', { source, dest });
     socket.on('benchmark', benchmark => {
       console.log('benchmark: ', benchmark);
-      socket.off('benchmark');
+      this.setState((prevState) => ({
+        benchmark: {
+          ...prevState.benchmark,
+          [benchmark.name]: benchmark
+        }
+      }))
     });
     this.setState({ showBenchmarkCard: true });
   }
@@ -102,7 +107,10 @@ export default class App extends Component {
   }
 
   _closeBenchmarkCard = () => {
-    this.setState({ showBenchmarkCard: false });
+    this.setState({
+      showBenchmarkCard: false,
+      benchmark: {},
+    });
   }
 
   render() {
