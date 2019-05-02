@@ -12,7 +12,8 @@ export default class App extends Component {
     obstacles: null, // geojson
     source: null,
     dest: null,
-    route: [], // [[lon, lat]]
+    constraint: true,
+    route: {}, // geojson
     traversed: null, // geojson
     benchmark: {},
     showBenchmarkCard: false,
@@ -39,9 +40,9 @@ export default class App extends Component {
   }
 
   _runAStar = () => {
-    const { socket, source, dest } = this.state;
+    const { socket, source, dest, constraint } = this.state;
     if (!socket) return;
-    socket.emit('runAStar', { source, dest });
+    socket.emit('runAStar', { source, dest, constraint });
     socket.on('AStarRoute', route => {
       console.log('route: ', route);
       this.setState({ route });
@@ -55,9 +56,9 @@ export default class App extends Component {
   }
 
   _runDijkstra = () => {
-    const { socket, source, dest } = this.state;
+    const { socket, source, dest, constraint } = this.state;
     if (!socket) return;
-    socket.emit('runDijkstra', { source, dest });
+    socket.emit('runDijkstra', { source, dest, constraint });
     socket.on('DijkstraRoute', route => {
       console.log('route: ', route);
       this.setState({ route });
@@ -71,9 +72,9 @@ export default class App extends Component {
   }
 
   _runBestFS = () => {
-    const { socket, source, dest } = this.state;
+    const { socket, source, dest, constraint } = this.state;
     if (!socket) return;
-    socket.emit('runBestFS', { source, dest });
+    socket.emit('runBestFS', { source, dest, constraint });
     socket.on('BestFSRoute', route => {
       console.log('route: ', route);
       this.setState({ route });
@@ -87,9 +88,9 @@ export default class App extends Component {
   }
 
   _runBenchmark = () => {
-    const { socket, source, dest } = this.state;
+    const { socket, source, dest, constraint } = this.state;
     if (!socket) return;
-    socket.emit('runBenchmark', { source, dest });
+    socket.emit('runBenchmark', { source, dest, constraint });
     socket.on('benchmark', benchmark => {
       console.log('benchmark: ', benchmark);
       this.setState((prevState) => ({
@@ -100,6 +101,14 @@ export default class App extends Component {
       }))
     });
     this.setState({ showBenchmarkCard: true });
+  }
+
+  _switchConstraint = () => {
+    this.setState((prevState) => ({
+      constraint: !prevState.constraint
+    }), () => {
+      emitter.emit('switchConstraint', this.state.constraint);
+    })
   }
 
   _focusMap = () => {
@@ -114,7 +123,7 @@ export default class App extends Component {
   }
 
   render() {
-    const { obstacles, source, dest, route, traversed, showBenchmarkCard, benchmark } = this.state;
+    const { obstacles, source, dest, constraint, route, traversed, showBenchmarkCard, benchmark } = this.state;
 
     return (
       <div className="App">
@@ -128,6 +137,7 @@ export default class App extends Component {
             <button onClick={this._runBestFS} style={styles.button}>Best First Search</button>
             <button onClick={this._runBenchmark} style={styles.button}>Benchmark</button>
             <button onClick={this._focusMap} style={styles.button}>Focus</button>
+            <button onClick={this._switchConstraint} style={constraint ? styles.constraintEnabledBtn : styles.button}>Constraints</button>
           </div>
         </div>
         <Map
@@ -138,7 +148,13 @@ export default class App extends Component {
           traversed={traversed}
           onAddPin={this._setSourceDest}
         />
-        {showBenchmarkCard && <Benchmark benchmark={benchmark} onClose={this._closeBenchmarkCard} />}
+        {showBenchmarkCard &&
+          <Benchmark
+            benchmark={benchmark}
+            constraint={constraint}
+            onClose={this._closeBenchmarkCard}
+          />
+        }
       </div>
     );
   }
@@ -167,6 +183,17 @@ const styles = {
     margin: '3px 10px 3px 0',
     color: 'rgb(50, 50, 50)',
     backgroundColor: 'white',
+    cursor: 'pointer',
+    outline: 0,
+  },
+  constraintEnabledBtn: {
+    border: 'none',
+    borderRadius: '15px',
+    padding: '5px 15px',
+    fontSize: '15px',
+    margin: '3px 10px 3px 0',
+    color: 'white',
+    backgroundColor: '#3b9cff',
     cursor: 'pointer',
     outline: 0,
   }

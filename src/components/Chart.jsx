@@ -4,7 +4,6 @@ import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Legend, Tooltip, Responsive
 export default class Chart extends Component {
   render() {
     const { data, dataKeys = [] } = this.props;
-    console.log('data: ', data);
 
     return (
       <ResponsiveContainer width="100%" height="100%">
@@ -14,7 +13,7 @@ export default class Chart extends Component {
               key={dataKey}
               type="monotone"
               dataKey={dataKey}
-              fill={['#8884d8', '#82ca9d', '#FC5B60', '#42B2CE'][i]}
+              fill={['#82ca9d', '#8884d8', '#FC5B60', '#42B2CE'][i]}
               barSize={45}
             />
           ))}

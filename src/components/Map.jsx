@@ -24,6 +24,7 @@ export default class Map extends Component {
     this.updateWindowDimensions();
     window.addEventListener('resize', this.updateWindowDimensions);
     emitter.addListener('focusMap', this._focusMap);
+    emitter.addListener('switchConstraint', (constraint) => this._toggleObstacleLayer(constraint));
 
     const map = this.reactMap.getMap();
     map.on('load', () => {
@@ -164,8 +165,17 @@ export default class Map extends Component {
           'circle-opacity': 0.3
         }
       });
-      map.moveLayer('traversed', 'obstacles');
+      map.moveLayer('traversed', 'route');
     }
+  }
+
+  _toggleObstacleLayer = (constraint) => {
+    const { map } = this.state;
+    map.setLayoutProperty(
+      'obstacles',
+      'visibility',
+      constraint ? 'visible' : 'none'
+    );
   }
 
   _focusMap = () => {
