@@ -23,6 +23,7 @@ export default class Map extends Component {
   componentDidMount() {
     this.updateWindowDimensions();
     window.addEventListener('resize', this.updateWindowDimensions);
+    window.addEventListener('orientationchange', this.updateWindowDimensions);
     emitter.addListener('focusMap', this._focusMap);
     emitter.addListener('switchConstraint', (constraint) => this._toggleObstacleLayer(constraint));
 
