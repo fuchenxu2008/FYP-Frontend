@@ -32,7 +32,5 @@
       "last 1 safari version"
     ]
   },
-  "devDependencies": {
-    "cross-env": "^5.2.0"
-  }
+  "devDependencies": {}
 }
