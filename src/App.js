@@ -13,6 +13,7 @@ export default class App extends Component {
     source: null,
     dest: null,
     constraint: true,
+    hMode: 'distance',
     route: {}, // geojson
     traversed: null, // geojson
     benchmark: {},
@@ -40,9 +41,9 @@ export default class App extends Component {
   }
 
   _runAStar = () => {
-    const { socket, source, dest, constraint } = this.state;
+    const { socket, source, dest, constraint, hMode } = this.state;
     if (!socket) return;
-    socket.emit('runAStar', { source, dest, constraint });
+    socket.emit('runAStar', { source, dest, constraint, hMode });
     socket.on('AStarRoute', route => {
       console.log('route: ', route);
       this.setState({ route });
@@ -72,9 +73,9 @@ export default class App extends Component {
   }
 
   _runBestFS = () => {
-    const { socket, source, dest, constraint } = this.state;
+    const { socket, source, dest, constraint, hMode } = this.state;
     if (!socket) return;
-    socket.emit('runBestFS', { source, dest, constraint });
+    socket.emit('runBestFS', { source, dest, constraint, hMode });
     socket.on('BestFSRoute', route => {
       console.log('route: ', route);
       this.setState({ route });
@@ -88,9 +89,9 @@ export default class App extends Component {
   }
 
   _runBenchmark = () => {
-    const { socket, source, dest, constraint } = this.state;
+    const { socket, source, dest, constraint, hMode } = this.state;
     if (!socket) return;
-    socket.emit('runBenchmark', { source, dest, constraint });
+    socket.emit('runBenchmark', { source, dest, constraint, hMode });
     socket.on('benchmark', benchmark => {
       console.log('benchmark: ', benchmark);
       this.setState((prevState) => ({
@@ -111,6 +112,12 @@ export default class App extends Component {
     })
   }
 
+  _switchHeuristicMode = () => {
+    this.setState((prevState) => ({
+      hMode: prevState.hMode === 'time' ? 'distance' : 'time'
+    }))
+  }
+
   _focusMap = () => {
     emitter.emit('focusMap');
   }
@@ -123,7 +130,7 @@ export default class App extends Component {
   }
 
   render() {
-    const { obstacles, source, dest, constraint, route, traversed, showBenchmarkCard, benchmark } = this.state;
+    const { obstacles, source, dest, constraint, hMode, route, traversed, showBenchmarkCard, benchmark } = this.state;
 
     return (
       <div className="App">
@@ -137,7 +144,18 @@ export default class App extends Component {
             <button onClick={this._runBestFS} style={styles.button}>Best First Search</button>
             <button onClick={this._runBenchmark} style={styles.button}>Benchmark</button>
             <button onClick={this._focusMap} style={styles.button}>Focus</button>
-            <button onClick={this._switchConstraint} style={constraint ? styles.constraintEnabledBtn : styles.button}>Constraints</button>
+            <button
+              onClick={this._switchConstraint}
+              style={constraint ? styles.constraintEnabledBtn : styles.button}
+            >
+              Constraints
+            </button>
+            <button
+              onClick={this._switchHeuristicMode}
+              style={hMode === 'time' ? styles.hModeTimeBtn : styles.button}
+            >
+              {hMode === 'time' ? 'ByTime' : 'ByDistance'}
+            </button>
           </div>
         </div>
         <Map
@@ -152,6 +170,7 @@ export default class App extends Component {
           <Benchmark
             benchmark={benchmark}
             constraint={constraint}
+            hMode={hMode}
             onClose={this._closeBenchmarkCard}
           />
         }
@@ -194,6 +213,17 @@ const styles = {
     margin: '3px 10px 3px 0',
     color: 'white',
     backgroundColor: '#3b9cff',
+    cursor: 'pointer',
+    outline: 0,
+  },
+  hModeTimeBtn: {
+    border: 'none',
+    borderRadius: '15px',
+    padding: '5px 15px',
+    fontSize: '15px',
+    margin: '3px 10px 3px 0',
+    color: 'white',
+    backgroundColor: '#404040',
     cursor: 'pointer',
     outline: 0,
   }

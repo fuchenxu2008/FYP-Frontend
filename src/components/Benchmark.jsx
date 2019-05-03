@@ -3,7 +3,7 @@ import Chart from './Chart.jsx';
 
 export default class Benchmark extends Component {
     state = {
-        current: 'cost',
+        current: 'time',
     }
 
     _handleCloseCard = () => {
@@ -15,16 +15,18 @@ export default class Benchmark extends Component {
     }
 
     render() {
-        const { benchmark, constraint = true } = this.props;
+        const { benchmark, constraint, hMode } = this.props;
         const { current } = this.state;
         const data = Object.keys(benchmark).map(algo => benchmark[algo])
 
         return (
             <div style={styles.overlay} onClick={this._handleCloseCard}>
                 <div style={styles.benchmarkCard} onClick={(e) => e.stopPropagation()}>
-                    <h1 style={styles.h1}>Benchmark <span style={styles.desc}>({constraint ? 'with' : 'without'} constraint)</span></h1>
+                    <h1 style={styles.h1}>Benchmark <span style={styles.desc}>
+                        ({constraint ? 'with' : 'without'} constraint & heuristic by {hMode})
+                    </span></h1>
                     <div style={styles.buttonGroup}>
-                        <button onClick={() => this._switchChart('cost')} style={current === 'cost' ? styles.selectedBtn : styles.button}>Cost(s)</button>
+                        <button onClick={() => this._switchChart('time')} style={current === 'time' ? styles.selectedBtn : styles.button}>Time(s)</button>
                         <button onClick={() => this._switchChart('distance')} style={current === 'distance' ? styles.selectedBtn : styles.button}>Distance(m)</button>
                         <button onClick={() => this._switchChart('runTime')} style={current === 'runTime' ? styles.selectedBtn : styles.button}>RunTime(s)</button>
                         <button onClick={() => this._switchChart('traversed')} style={current === 'traversed' ? styles.selectedBtn : styles.button}>Traversed</button>
@@ -34,7 +36,7 @@ export default class Benchmark extends Component {
                         data.length
                         ? (
                             <div style={styles.chartContainer}>
-                                {current === 'cost' && <Chart data={data} dataKeys={['cost']} />}
+                                {current === 'time' && <Chart data={data} dataKeys={['time']} />}
                                 {current === 'distance' && <Chart data={data} dataKeys={['distance']} />}
                                 {current === 'runTime' && <Chart data={data} dataKeys={['runTime']} />}
                                 {current === 'traversed' && <Chart data={data} dataKeys={['traversed']} />}
